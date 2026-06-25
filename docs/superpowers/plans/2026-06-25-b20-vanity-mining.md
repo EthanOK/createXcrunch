@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a `b20` GPU subcommand that mines vanity `bytes32` salts for Base B20 token addresses, faster than existing create3 mining.
+**Goal:** Add a `b20` GPU subcommand that mines vanity `bytes32` salts for B20 Native Token Standard addresses on Base, faster than existing create3 mining.
 
 **Architecture:** CPU reference function (`compute_b20_address`) verified against `getB20Address`, then a self-contained OpenCL kernel (`b20.cl`) that hashes `abi.encodePacked(deployer, salt)` once via partial keccak, assembles the fixed B20 prefix + variant byte + 9-byte suffix, and checks reward criteria. Rust glue mirrors existing `gpu()` / `mk_kernel_src()` patterns.
 
@@ -421,7 +421,7 @@ pub struct B20Args {
 }
 
 // In Commands enum:
-#[command(about = "Mine for a Base B20 token address.")]
+#[command(about = "Mine for a B20 Native Token Standard address on Base.")]
 B20(B20Args),
 ```
 
@@ -672,7 +672,7 @@ git commit -m "test: add B20 GPU kernel tests"
 - [ ] **Step 1: Add B20 section after Usage**
 
 ```markdown
-### B20 (Base Native Token)
+### B20 (Base Native Token Standard)
 
 Mine a vanity salt for a Base [B20](https://docs.base.org/base-chain/specs/upgrades/beryl/b20) token address:
 

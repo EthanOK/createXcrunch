@@ -6,7 +6,7 @@
 
 ## Summary
 
-Add a new `b20` subcommand to `createXcrunch` that GPU-mines `bytes32` salts for vanity Base B20 token addresses. B20 address derivation requires a single `keccak256(deployer, salt)` hash, making it significantly faster than the existing CreateX create2/create3 paths.
+Add a new `b20` subcommand to `createXcrunch` that GPU-mines `bytes32` salts for vanity B20 Native Token Standard addresses on Base. B20 address derivation requires a single `keccak256(deployer, salt)` hash, making it significantly faster than the existing CreateX create2/create3 paths.
 
 ## Requirements
 
@@ -108,15 +108,15 @@ Factory precompile: `0xB20f000000000000000000000000000000000000`
 
 ## Salt Mining Strategy
 
-Reuse createXcrunch's random-prefix + nonce iteration pattern, adapted for `bytes32` salt:
+Reuse createXcrunch's random-prefix + nonce iteration pattern. **Same permissioned salt layout as create2/create3 with `--caller`:**
 
 ```text
-salt = [4-byte random] [7-byte from nonce] [21-byte zeros]
+salt = [caller (20)] [0x00] [4-byte random] [7-byte from nonce]
 ```
 
-- **Fixed:** deployer (20 bytes) injected as kernel constants
-- **Searched:** first 11 bytes of salt (4 random + 7 nonce-driven)
-- **Hash input:** 52 bytes total — much smaller than CreateX's 85+ byte sponge
+- **Fixed in salt:** caller address + separator byte `0x00`
+- **Searched:** last 11 bytes of salt (4 random + 7 nonce-driven)
+- **Hash input:** `abi.encode(deployer, salt)` — 64 bytes (left-padded deployer + full salt)
 
 ## GPU Kernel
 
@@ -133,22 +133,22 @@ Existing `keccak256.cl` and CreateX paths are **not modified**.
 
 | Aspect | CreateX (create3) | B20 |
 |--------|-------------------|-----|
-| Keccak rounds | 2–3 full/partial rounds | 1 partial round |
-| Sponge input size | ~85–135 bytes | 52 bytes |
+| Keccak rounds | 2–3 full/partial rounds | 1 full `keccak256` |
+| Sponge input size | ~85–135 bytes | 64 bytes (`abi.encode`) |
 | Post-hash assembly | CREATE2 prefix + optional CREATE3 proxy | Fixed prefix + variant byte |
 
 Expected: **2–4× higher attempts/sec** on the same GPU vs create3.
 
 ### Kernel flow (`hashB20Salt`)
 
-1. Assemble salt: `[4-byte message][7-byte nonce][21 zero bytes]`
-2. Build sponge: `[20-byte deployer][32-byte salt]` + Keccak padding (52-byte input)
-3. Run `partial_keccakf` (only first 9 bytes of digest needed)
+1. Assemble salt: `[caller (20)][0x00][4-byte message][7-byte nonce]`
+2. Build sponge: `abi.encode(deployer, salt)` — 64 bytes + Keccak padding
+3. Run full `keccakf`; take first 9 bytes of digest
 4. Assemble address: `prefix[10] + variant[1] + hash[9]`
 5. Evaluate `SUCCESS_CONDITION()` (matching / suffix leading / suffix total)
-6. Write solutions buffer: `[nonce, addr_word0, addr_word1, addr_word2]`
+6. Write solutions buffer; Rust recomputes address via `compute_b20_address` for output
 
-Reuse `keccakf`, `partial_keccakf`, and reward-check helpers copied from `keccak256.cl` (OpenCL has no `#include`; keep `b20.cl` self-contained). Adapt leading/total checks to scan only the 9-byte suffix.
+Reuse full `keccakf` from `keccak256.cl` (OpenCL has no `#include`; keep `b20.cl` self-contained). Adapt leading/total checks to scan only the 9-byte suffix.
 
 `WORK_SIZE` remains `0x4000000`.
 

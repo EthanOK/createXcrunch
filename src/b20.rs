@@ -36,6 +36,16 @@ impl B20Variant {
     }
 }
 
+/// Permissioned B20 salt: `[caller (20)][0x00][4-byte random][7-byte nonce]`.
+/// Same `bytes32` layout as create2/create3 with `--caller` (`SaltVariant::Sender`).
+pub fn assemble_b20_salt(deployer: [u8; 20], random_and_nonce: [u8; 11]) -> [u8; 32] {
+    let mut salt = [0u8; 32];
+    salt[..20].copy_from_slice(&deployer);
+    salt[20] = 0;
+    salt[21..32].copy_from_slice(&random_and_nonce);
+    salt
+}
+
 /// B20 address = prefix || variant || keccak256(abi.encode(deployer, salt))[0..9]
 pub fn compute_b20_address(deployer: [u8; 20], salt: [u8; 32], variant: B20Variant) -> [u8; 20] {
     let mut hasher = Keccak::v256();
@@ -358,18 +368,13 @@ pub fn gpu_b20(config: B20Config<'_>) -> ocl::Result<()> {
         }
 
         let solution = solutions[0].to_le_bytes();
-        let mined_salt = chain!(salt_prefix, solution[..7].iter().copied());
-        let mut salt = [0u8; 32];
-        for (i, b) in mined_salt.enumerate() {
-            salt[i] = b;
+        let mut random_and_nonce = [0u8; 11];
+        for (i, b) in chain!(salt_prefix, solution[..7].iter().copied()).enumerate() {
+            random_and_nonce[i] = b;
         }
+        let salt = assemble_b20_salt(config.deployer, random_and_nonce);
 
-        let address: Vec<u8> = solutions[1]
-            .to_be_bytes()
-            .into_iter()
-            .chain(solutions[2].to_be_bytes())
-            .chain(solutions[3].to_be_bytes()[..4].to_vec())
-            .collect();
+        let address = compute_b20_address(config.deployer, salt, config.variant);
 
         let suffix = &address[11..20];
         let mut total = 0u8;

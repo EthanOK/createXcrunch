@@ -148,7 +148,7 @@ pub struct B20Args {
         long,
         short,
         required = true,
-        long_help = "Deployer address (msg.sender for createB20).",
+        long_help = "Deployer address (msg.sender for createB20). Encoded at the start of the mined bytes32 salt, like create2/create3 --caller.",
         help_heading = "Crunching options"
     )]
     pub caller: String,
@@ -225,6 +225,6 @@ pub enum Commands {
     Create3(CliArgs),
     #[command(about = "Mine for a CREATE2 deployment address.")]
     Create2(Create2Args),
-    #[command(about = "Mine for a Base B20 token address.")]
+    #[command(about = "Mine for a B20 Native Token Standard address on Base.")]
     B20(B20Args),
 }

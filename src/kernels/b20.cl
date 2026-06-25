@@ -1,6 +1,6 @@
 /*
  * B20 vanity address miner kernel for createXcrunch.
- * Hashes abi.encode(deployer, salt) — 64 bytes — with partial keccak256.
+ * Hashes abi.encode(deployer, salt) — 64 bytes — with keccak256.
  */
 
 #define OPENCL_PLATFORM_UNKNOWN 0
@@ -81,47 +81,11 @@ ITER(0x000000000000800a); ITER(0x800000008000000a); \
 ITER(0x8000000080008081); ITER(0x8000000000008080); \
 ITER(0x0000000080000001); ITER(0x8000000080008008);
 
-static inline void partial_keccakf(ulong *a)
+static inline void keccakf(ulong *a)
 {
   ulong b[5];
   ulong t;
-  ITER(0x0000000000000001); ITER(0x0000000000008082);
-  ITER(0x800000000000808a); ITER(0x8000000080008000);
-  ITER(0x000000000000808b); ITER(0x0000000080000001);
-  ITER(0x8000000080008081); ITER(0x8000000000008009);
-  ITER(0x000000000000008a); ITER(0x0000000000000088);
-  ITER(0x0000000080008009); ITER(0x000000008000000a);
-  ITER(0x000000008000808b); ITER(0x800000000000008b);
-  ITER(0x8000000000008089); ITER(0x8000000000008003);
-  ITER(0x8000000000008002); ITER(0x8000000000000080);
-  ITER(0x000000000000800a); ITER(0x800000008000000a);
-  ITER(0x8000000080008081); ITER(0x8000000000008080);
-  ITER(0x0000000080000001);
-
-#define o ((uint *)(a))
-  b[0] = a[0] ^ a[5] ^ a[10] ^ a[15] ^ a[20];
-  b[1] = a[1] ^ a[6] ^ a[11] ^ a[16] ^ a[21];
-  b[2] = a[2] ^ a[7] ^ a[12] ^ a[17] ^ a[22];
-  b[3] = a[3] ^ a[8] ^ a[13] ^ a[18] ^ a[23];
-  b[4] = a[4] ^ a[9] ^ a[14] ^ a[19] ^ a[24];
-
-  a[0] ^= b[4] ^ ROL(b[1], 1u);
-  a[6] ^= b[0] ^ ROL(b[2], 1u);
-  a[12] ^= b[1] ^ ROL(b[3], 1u);
-  a[18] ^= b[2] ^ ROL(b[4], 1u);
-  a[24] ^= b[3] ^ ROL(b[0], 1u);
-
-  o[3] = (o[13] >> 20) | (o[12] << 12);
-  a[2] = ROL(a[12], 43);
-  a[3] = ROL(a[18], 21);
-  a[4] = ROL(a[24], 14);
-
-  o[3] ^= ((~o[5]) & o[7]);
-  o[4] ^= ((~o[6]) & o[8]);
-  o[5] ^= ((~o[7]) & o[9]);
-  o[6] ^= ((~o[8]) & o[0]);
-  o[7] ^= ((~o[9]) & o[1]);
-#undef o
+  ITERS();
 }
 
 static inline bool isMatching(uchar const *d)
@@ -198,21 +162,38 @@ __kernel void hashB20Salt(
   sponge[30] = DEPLOY_18;
   sponge[31] = DEPLOY_19;
 
-  sponge[32] = d_message[0];
-  sponge[33] = d_message[1];
-  sponge[34] = d_message[2];
-  sponge[35] = d_message[3];
-  sponge[36] = nonce.uint8_t[0];
-  sponge[37] = nonce.uint8_t[1];
-  sponge[38] = nonce.uint8_t[2];
-  sponge[39] = nonce.uint8_t[3];
-  sponge[40] = nonce.uint8_t[4];
-  sponge[41] = nonce.uint8_t[5];
-  sponge[42] = nonce.uint8_t[6];
-
-#pragma unroll
-  for (int i = 43; i < 64; ++i)
-    sponge[i] = 0;
+  sponge[32] = DEPLOY_0;
+  sponge[33] = DEPLOY_1;
+  sponge[34] = DEPLOY_2;
+  sponge[35] = DEPLOY_3;
+  sponge[36] = DEPLOY_4;
+  sponge[37] = DEPLOY_5;
+  sponge[38] = DEPLOY_6;
+  sponge[39] = DEPLOY_7;
+  sponge[40] = DEPLOY_8;
+  sponge[41] = DEPLOY_9;
+  sponge[42] = DEPLOY_10;
+  sponge[43] = DEPLOY_11;
+  sponge[44] = DEPLOY_12;
+  sponge[45] = DEPLOY_13;
+  sponge[46] = DEPLOY_14;
+  sponge[47] = DEPLOY_15;
+  sponge[48] = DEPLOY_16;
+  sponge[49] = DEPLOY_17;
+  sponge[50] = DEPLOY_18;
+  sponge[51] = DEPLOY_19;
+  sponge[52] = 0;
+  sponge[53] = d_message[0];
+  sponge[54] = d_message[1];
+  sponge[55] = d_message[2];
+  sponge[56] = d_message[3];
+  sponge[57] = nonce.uint8_t[0];
+  sponge[58] = nonce.uint8_t[1];
+  sponge[59] = nonce.uint8_t[2];
+  sponge[60] = nonce.uint8_t[3];
+  sponge[61] = nonce.uint8_t[4];
+  sponge[62] = nonce.uint8_t[5];
+  sponge[63] = nonce.uint8_t[6];
 
   sponge[64] = 0x01u;
 
@@ -226,7 +207,7 @@ __kernel void hashB20Salt(
   for (int i = 136; i < 200; ++i)
     sponge[i] = 0;
 
-  partial_keccakf(spongeBuffer);
+  keccakf(spongeBuffer);
 
   uchar addr[20];
   addr[0] = 0xB2u;
@@ -259,10 +240,10 @@ __kernel void hashB20Salt(
 
     newUint64 = 0;
 #pragma unroll
-    for (ulong k = 0; k < 8; k++) {
-      ulong d = addr[k + 16];
+    for (ulong k = 0; k < 4; k++) {
+      ulong d = addr[16 + k];
       newUint64 |= (d << ((7 - k) * 8));
     }
-    solutions[3] = newUint64 & 0xFFFFFFFFu;
+    solutions[3] = newUint64;
   }
 }

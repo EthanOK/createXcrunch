@@ -67,6 +67,34 @@ cargo build --release
 
 ## Usage
 
+`createXcrunch` has three subcommands: `create2`, `create3`, and `b20`.
+
+### Salt layout (mined `bytes32`)
+
+All commands GPU-search the same **11-byte tail**: `[4-byte random][7-byte nonce]`. The full salt depends on the command:
+
+| Command | Salt structure (32 bytes) |
+|---------|---------------------------|
+| `create2` / `create3` (no flags) | `[4 random][7 nonce][21 × 0x00]` |
+| `create2` / `create3` + `--caller` | `[caller (20)][0x00][4 random][7 nonce]` |
+| `create2` / `create3` + `--crosschain` | `[20-byte prefix][0x01][chain_id?][4 random][7 nonce]` |
+| **`b20`** (always permissioned) | **`[caller (20)][0x00][4 random][7 nonce]`** — same as create2/create3 with `--caller` |
+
+Example B20 salt (caller `0x88c6…134A`):
+
+```text
+0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A 00 d883677aab55cd021d2eea
+   └────────────── caller ──────────────────┘ ^^ └──── random + nonce ────┘
+```
+
+Output format (`output.txt`):
+
+```text
+0x<SALT> => 0x<ADDRESS>
+```
+
+### Create3
+
 ```console
 ./target/release/createxcrunch create3 \
   --caller 0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A \
@@ -74,29 +102,65 @@ cargo build --release
   --matching ba5edXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXba5ed
 ```
 
-### B20 (Base Native Token)
+### Create2
 
-Mine a vanity salt for a Base [B20](https://docs.base.org/base-chain/specs/upgrades/beryl/b20) token address:
+Requires `--code-hash` (keccak256 of the contract creation bytecode):
+
+```console
+./target/release/createxcrunch create2 \
+  --code-hash 0x0000000000000000000000000000000000000000000000000000000000000000 \
+  --caller 0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A \
+  --matching 6XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```
+
+Use your real init code hash for deployment (the all-zero hash above is only for testing the miner).
+
+### B20 (Base Native Token Standard)
+
+Mine a vanity salt for a [B20 Native Token Standard](https://docs.base.org/base-chain/specs/upgrades/beryl/b20) address on Base.
+
+**Address derivation** (verified against factory `0xB20f…` on Base Sepolia):
+
+```text
+address = [10-byte B20 prefix][1-byte variant][keccak256(abi.encode(deployer, salt))[0:9]]
+```
+
+- Hash input is **`abi.encode(deployer, salt)`** (64 bytes), not `abi.encodePacked`.
+- `--caller` is required: deployer for `createB20` / `getB20Address`, and encoded at the start of the mined salt (see table above).
+- `--variant asset` (default) or `stablecoin` selects the variant byte in the address.
 
 ```console
 ./target/release/createxcrunch b20 \
   --caller 0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A \
   --variant asset \
-  --matching 66666666XXXXXXXXXX
+  --matching 666666XXXXXXXXXXXX
 ```
 
-Use `--full-pattern` for a complete 40-character address pattern. B20 mining performs a single `keccak256` and is typically **2–4× faster** than `create3` on the same GPU.
+Suffix mode (default): pass **18 hex characters** for the hash suffix only; the program prepends the B20 prefix + variant, e.g. `666666XXXXXXXXXXXX` → full address `0xb200000000000000000000666666…`.
 
-Use the `--help` flag for a full overview of all the features and how to use them:
+Use `--full-pattern` for a complete 40-character address pattern (must match the chosen `--variant` prefix).
+
+B20 performs a single `keccak256` and is typically **2–4× faster** than `create3` on the same GPU.
+
+#### Verify a result on-chain
+
+```console
+cast call 0xB20f000000000000000000000000000000000000 \
+  "getB20Address(uint8,address,bytes32)(address)" \
+  0 \
+  0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A \
+  0x<SALT_FROM_OUTPUT> \
+  --rpc-url https://sepolia.base.org
+```
+
+The returned address must match the right-hand side in `output.txt`.
+
+### Help
 
 ```console
 ./target/release/createxcrunch create2 --help
-```
-
-or
-
-```console
 ./target/release/createxcrunch create3 --help
+./target/release/createxcrunch b20 --help
 ```
 
 ## Local Development
