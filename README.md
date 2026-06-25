@@ -68,10 +68,24 @@ cargo build --release
 ## Usage
 
 ```console
-./target/release/createxcrunch create3 --caller 0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A
-  \ --crosschain 1
-  \ --matching ba5edXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXba5ed
+./target/release/createxcrunch create3 \
+  --caller 0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A \
+  --crosschain 1 \
+  --matching ba5edXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXba5ed
 ```
+
+### B20 (Base Native Token)
+
+Mine a vanity salt for a Base [B20](https://docs.base.org/base-chain/specs/upgrades/beryl/b20) token address:
+
+```console
+./target/release/createxcrunch b20 \
+  --caller 0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A \
+  --variant asset \
+  --matching 66666666XXXXXXXXXX
+```
+
+Use `--full-pattern` for a complete 40-character address pattern. B20 mining performs a single `keccak256` and is typically **2–4× faster** than `create3` on the same GPU.
 
 Use the `--help` flag for a full overview of all the features and how to use them:
 

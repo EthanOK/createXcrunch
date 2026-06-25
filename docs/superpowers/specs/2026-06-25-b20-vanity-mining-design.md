@@ -89,10 +89,12 @@ address = [10-byte B20 prefix] [1-byte variant] [9-byte hash]
 ### Hash input encoding
 
 ```text
-input  = abi.encodePacked(deployer, salt)   // 52 bytes: 20 + 32
+input  = abi.encode(deployer, salt)   // 64 bytes: 32-byte left-padded address + 32-byte salt
 hash   = keccak256(input)
 suffix = hash[0..9]
 ```
+
+Verified against Base Sepolia `getB20Address` — **not** `abi.encodePacked` (52 bytes).
 
 **Verification gate:** Before merging, confirm encoding against `IB20Factory.getB20Address(variant, sender, salt)` on Base Sepolia or `base-anvil` via:
 
