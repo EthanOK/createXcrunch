@@ -1,4 +1,4 @@
-use clap::{command, ArgAction, ArgGroup, Args, Parser, Subcommand};
+use clap::{ArgAction, ArgGroup, Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[command(arg_required_else_help = true)]
@@ -134,10 +134,97 @@ pub struct Create2Args {
     pub init_code_hash: String,
 }
 
+#[derive(ValueEnum, Clone, Copy, Debug)]
+pub enum B20VariantArg {
+    Asset,
+    Stablecoin,
+}
+
+#[derive(Args)]
+#[clap(group = ArgGroup::new("b20-search-criteria").multiple(true).required(true))]
+pub struct B20Args {
+    #[arg(
+        id = "caller",
+        long,
+        short,
+        required = true,
+        long_help = "Deployer address (msg.sender for createB20). Encoded at the start of the mined bytes32 salt, like create2/create3 --caller.",
+        help_heading = "Crunching options"
+    )]
+    pub caller: String,
+
+    #[arg(long, default_value = "asset", help_heading = "Crunching options")]
+    pub variant: B20VariantArg,
+
+    #[arg(
+        id = "zeros",
+        long = "leading",
+        short = 'z',
+        group = "b20-search-criteria",
+        long_help = "Minimum leading zero bytes in the 9-byte address suffix (max 9).",
+        help_heading = "Crunching options"
+    )]
+    pub zeros: Option<u8>,
+
+    #[arg(
+        id = "total",
+        long = "total",
+        short = 't',
+        group = "b20-search-criteria",
+        long_help = "Total zero bytes in the 9-byte address suffix (max 9).",
+        help_heading = "Crunching options"
+    )]
+    pub total: Option<u8>,
+
+    #[arg(
+        id = "either",
+        long = "either",
+        requires_all = &["zeros", "total"],
+        action = ArgAction::SetTrue,
+        help_heading = "Crunching options"
+    )]
+    pub either: bool,
+
+    #[arg(
+        id = "pattern",
+        long = "matching",
+        short = 'm',
+        group = "b20-search-criteria",
+        long_help = "Suffix pattern (18 hex chars) or full pattern (40 chars with --full-pattern).",
+        help_heading = "Crunching options",
+        conflicts_with_all = &["zeros", "total"],
+        value_parser = to_lowercase_boxed_str
+    )]
+    pub pattern: Option<Box<str>>,
+
+    #[arg(long = "full-pattern", help_heading = "Crunching options")]
+    pub full_pattern: bool,
+
+    #[arg(
+        id = "gpu-device-id",
+        long,
+        short,
+        default_value = "0",
+        help_heading = "Crunching options"
+    )]
+    pub gpu_device_id: u8,
+
+    #[arg(
+        id = "output",
+        long,
+        short,
+        default_value = "output.txt",
+        help_heading = "Output options"
+    )]
+    pub output: String,
+}
+
 #[derive(Subcommand)]
 pub enum Commands {
     #[command(about = "Mine for a CREATE3 deployment address.")]
     Create3(CliArgs),
     #[command(about = "Mine for a CREATE2 deployment address.")]
     Create2(Create2Args),
+    #[command(about = "Mine for a B20 Native Token Standard address on Base.")]
+    B20(B20Args),
 }

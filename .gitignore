@@ -10,3 +10,6 @@ target
 
 # Default output file
 output.txt
+
+# Superpowers brainstorm artifacts
+.superpowers/
