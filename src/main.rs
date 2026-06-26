@@ -58,7 +58,10 @@ fn main() {
                 reward,
                 &args.cli_args.output,
             ) {
-                Ok(config) => gpu(config).unwrap_or_else(|e| panic!("{}", e)),
+                Ok(mut config) => {
+                    config.count = args.cli_args.count;
+                    gpu(config).unwrap_or_else(|e| panic!("{}", e))
+                }
                 Err(e) => panic!("{}", e),
             }
         }
@@ -73,7 +76,10 @@ fn main() {
                 reward,
                 &args.output,
             ) {
-                Ok(config) => gpu(config).unwrap_or_else(|e| panic!("{}", e)),
+                Ok(mut config) => {
+                    config.count = args.count;
+                    gpu(config).unwrap_or_else(|e| panic!("{}", e))
+                }
                 Err(e) => panic!("{}", e),
             }
         }
@@ -91,7 +97,10 @@ fn main() {
                 args.full_pattern,
                 &args.output,
             ) {
-                Ok(config) => gpu_b20(config).unwrap_or_else(|e| panic!("{}", e)),
+                Ok(mut config) => {
+                    config.count = args.count;
+                    gpu_b20(config).unwrap_or_else(|e| panic!("{}", e))
+                }
                 Err(e) => panic!("{}", e),
             }
         }

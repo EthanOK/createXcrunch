@@ -70,6 +70,8 @@ pub struct B20Config<'a> {
     pub reward: RewardVariant,
     pub full_pattern: Option<Box<str>>,
     pub output: &'a str,
+    /// Number of results to find before stopping. `0` means run indefinitely.
+    pub count: u64,
 }
 
 impl<'a> B20Config<'a> {
@@ -105,6 +107,7 @@ impl<'a> B20Config<'a> {
             reward,
             full_pattern,
             output,
+            count: 0,
         })
     }
 
@@ -193,7 +196,17 @@ fn expand_pattern(
 ) -> Result<Box<str>, &'static str> {
     let p = pattern.strip_prefix("0x").unwrap_or(pattern);
     if full_pattern_mode {
-        Ok(p.to_lowercase().into_boxed_str())
+        let normalized: String = p
+            .chars()
+            .map(|c| {
+                if c == 'X' {
+                    c.to_string()
+                } else {
+                    c.to_lowercase().to_string()
+                }
+            })
+            .collect();
+        Ok(normalized.into_boxed_str())
     } else {
         let mut full = String::with_capacity(40);
         full.push_str(variant.prefix_hex());
@@ -389,7 +402,11 @@ pub fn gpu_b20(config: B20Config<'_>) -> ocl::Result<()> {
             total += 1;
         }
 
-        let output = format!("0x{} => 0x{}", hex::encode(salt), hex::encode(address));
+        let output = format!(
+            "0x{} => {}",
+            hex::encode(salt),
+            Address::from(address).to_checksum(None)
+        );
         let show = format!("{output} ({leading} / {total})");
         match config.reward {
             RewardVariant::Matching { .. } => found_list.push(output.clone()),
@@ -400,6 +417,16 @@ pub fn gpu_b20(config: B20Config<'_>) -> ocl::Result<()> {
         writeln!(&file, "{output}").expect("Couldn't write to output file.");
         file.unlock().expect("Couldn't unlock file.");
         found += 1;
+
+        // stop once the requested number of results has been found (0 = unlimited)
+        if config.count != 0 && found >= config.count {
+            // append the final match: the periodic refresh above renders before
+            // a solution is found, so the last result would otherwise be missing.
+            if let Some(last) = found_list.last() {
+                term.write_line(last)?;
+            }
+            return Ok(());
+        }
     }
 }
 

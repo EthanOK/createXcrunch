@@ -65,6 +65,28 @@ fn b20_config_expands_suffix_pattern() {
 }
 
 #[test]
+fn b20_config_full_pattern_preserves_uppercase_wildcards() {
+    use createxcrunch::b20::B20Config;
+    use createxcrunch::RewardVariant;
+
+    let cfg = B20Config::new(
+        0,
+        "0x34A50a7A272E86EE30b7A74E36f3f02AF18B1eB5",
+        B20Variant::Asset,
+        RewardVariant::Matching {
+            pattern: "b200000000000000000000666666XXXXXXXXXXXX".into(),
+        },
+        true,
+        "output.txt",
+    )
+    .unwrap();
+    assert_eq!(
+        cfg.full_pattern(),
+        "b200000000000000000000666666XXXXXXXXXXXX"
+    );
+}
+
+#[test]
 fn assemble_b20_salt_matches_createx_sender_salt() {
     use itertools::chain;
 

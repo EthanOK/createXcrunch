@@ -108,6 +108,16 @@ pub struct CliArgs {
     pub pattern: Option<Box<str>>,
 
     #[arg(
+        id = "count",
+        long,
+        short = 'n',
+        default_value = "0",
+        long_help = "Number of matching results to find before stopping. 0 means run indefinitely.",
+        help_heading = "Crunching options"
+    )]
+    pub count: u64,
+
+    #[arg(
         id = "output",
         long,
         short,
@@ -208,6 +218,16 @@ pub struct B20Args {
         help_heading = "Crunching options"
     )]
     pub gpu_device_id: u8,
+
+    #[arg(
+        id = "count",
+        long,
+        short = 'n',
+        default_value = "0",
+        long_help = "Number of matching results to find before stopping. 0 means run indefinitely.",
+        help_heading = "Crunching options"
+    )]
+    pub count: u64,
 
     #[arg(
         id = "output",
