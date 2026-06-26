@@ -99,8 +99,11 @@ Output format (`output.txt`):
 ./target/release/createxcrunch create3 \
   --caller 0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A \
   --crosschain 1 \
-  --matching ba5edXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXba5ed
+  --matching ba5edXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXba5ed \
+  --count 3
 ```
+
+`--count` (`-n`) stops after finding the given number of results; `0` (default) runs indefinitely.
 
 ### Create2
 
@@ -110,7 +113,8 @@ Requires `--code-hash` (keccak256 of the contract creation bytecode):
 ./target/release/createxcrunch create2 \
   --code-hash 0x0000000000000000000000000000000000000000000000000000000000000000 \
   --caller 0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A \
-  --matching 6XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  --matching 6XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \
+  --count 3
 ```
 
 Use your real init code hash for deployment (the all-zero hash above is only for testing the miner).
@@ -119,7 +123,7 @@ Use your real init code hash for deployment (the all-zero hash above is only for
 
 Mine a vanity salt for a [B20 Native Token Standard](https://docs.base.org/base-chain/specs/upgrades/beryl/b20) address on Base.
 
-**Address derivation** (verified against factory `0xB20f…` on Base Sepolia):
+**Address derivation** (verified against factory `0xB20f…` on Base):
 
 ```text
 address = [10-byte B20 prefix][1-byte variant][keccak256(abi.encode(deployer, salt))[0:9]]
@@ -133,7 +137,8 @@ address = [10-byte B20 prefix][1-byte variant][keccak256(abi.encode(deployer, sa
 ./target/release/createxcrunch b20 \
   --caller 0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A \
   --variant asset \
-  --matching 666666XXXXXXXXXXXX
+  --matching 666666XXXXXXXXXXXX \
+  --count 3
 ```
 
 Suffix mode (default): pass **18 hex characters** for the hash suffix only; the program prepends the B20 prefix + variant, e.g. `666666XXXXXXXXXXXX` → full address `0xb200000000000000000000666666…`.
@@ -150,7 +155,7 @@ cast call 0xB20f000000000000000000000000000000000000 \
   0 \
   0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A \
   0x<SALT_FROM_OUTPUT> \
-  --rpc-url https://sepolia.base.org
+  --rpc-url https://mainnet.base.org
 ```
 
 The returned address must match the right-hand side in `output.txt`.

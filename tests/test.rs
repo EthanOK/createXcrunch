@@ -24,6 +24,7 @@ fn try_nonce(
         reward,
         // This field will be ignored for tests
         output: "output.txt",
+        count: 0,
     };
     // set up a platform to use
     let platform = Platform::new(ocl::core::default_platform()?);
