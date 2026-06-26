@@ -193,7 +193,17 @@ fn expand_pattern(
 ) -> Result<Box<str>, &'static str> {
     let p = pattern.strip_prefix("0x").unwrap_or(pattern);
     if full_pattern_mode {
-        Ok(p.to_lowercase().into_boxed_str())
+        let normalized: String = p
+            .chars()
+            .map(|c| {
+                if c == 'X' {
+                    c.to_string()
+                } else {
+                    c.to_lowercase().to_string()
+                }
+            })
+            .collect();
+        Ok(normalized.into_boxed_str())
     } else {
         let mut full = String::with_capacity(40);
         full.push_str(variant.prefix_hex());
@@ -389,7 +399,11 @@ pub fn gpu_b20(config: B20Config<'_>) -> ocl::Result<()> {
             total += 1;
         }
 
-        let output = format!("0x{} => 0x{}", hex::encode(salt), hex::encode(address));
+        let output = format!(
+            "0x{} => {}",
+            hex::encode(salt),
+            Address::from(address).to_checksum(None)
+        );
         let show = format!("{output} ({leading} / {total})");
         match config.reward {
             RewardVariant::Matching { .. } => found_list.push(output.clone()),
