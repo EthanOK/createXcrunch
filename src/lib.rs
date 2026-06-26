@@ -77,6 +77,8 @@ pub struct Config<'a> {
     pub create_variant: CreateXVariant,
     pub reward: RewardVariant,
     pub output: &'a str,
+    /// Number of results to find before stopping. `0` means run indefinitely.
+    pub count: u64,
 }
 
 impl<'a> Config<'a> {
@@ -208,6 +210,7 @@ impl<'a> Config<'a> {
             create_variant,
             reward,
             output,
+            count: 0,
         })
     }
 }
@@ -528,6 +531,16 @@ pub fn gpu(config: Config) -> ocl::Result<()> {
 
         file.unlock().expect("Couldn't unlock file.");
         found += 1;
+
+        // stop once the requested number of results has been found (0 = unlimited)
+        if config.count != 0 && found >= config.count {
+            // append the final match: the periodic refresh above renders before
+            // a solution is found, so the last result would otherwise be missing.
+            if let Some(last) = found_list.last() {
+                term.write_line(last)?;
+            }
+            return Ok(());
+        }
     }
 }
 
