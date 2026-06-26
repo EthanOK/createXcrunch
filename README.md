@@ -123,7 +123,7 @@ Use your real init code hash for deployment (the all-zero hash above is only for
 
 Mine a vanity salt for a [B20 Native Token Standard](https://docs.base.org/base-chain/specs/upgrades/beryl/b20) address on Base.
 
-**Address derivation** (verified against factory `0xB20f…` on Base Sepolia):
+**Address derivation** (verified against factory `0xB20f…` on Base):
 
 ```text
 address = [10-byte B20 prefix][1-byte variant][keccak256(abi.encode(deployer, salt))[0:9]]
@@ -155,7 +155,7 @@ cast call 0xB20f000000000000000000000000000000000000 \
   0 \
   0x88c6C46EBf353A52Bdbab708c23D0c81dAA8134A \
   0x<SALT_FROM_OUTPUT> \
-  --rpc-url https://sepolia.base.org
+  --rpc-url https://mainnet.base.org
 ```
 
 The returned address must match the right-hand side in `output.txt`.
